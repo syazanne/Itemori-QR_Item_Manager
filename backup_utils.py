@@ -48,6 +48,7 @@ def _timestamp(value, nullable=False):
 
 
 def _snapshot(connection, qr_dir: Path) -> bytes:
+    # Keep the format identifier so existing apps can read Itemori backups.
     data = {
         "application": "QR Item Manager", "version": 1,
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -122,7 +123,7 @@ def _validate_manifest(data):
     _require(isinstance(data, dict))
     # Accept archives made before the app was renamed as well.
     _require(data.get("application") in ("QR Item Manager", "QR-MedTech") and type(data.get("version")) is int and data["version"] == 1,
-             "Choose a supported QR Item Manager backup (version 1).")
+             "Choose a supported Itemori backup (version 1).")
     _require(_timestamp(data.get("exported_at")))
     fields, records, values = data.get("fields"), data.get("records"), data.get("values")
     _require(isinstance(fields, list) and len(fields) <= 6)

@@ -8,6 +8,25 @@ a separate private GitHub repository; its branch in `QR-Item-Manager` was delete
 
 ## This project's license
 
+**Mac desktop preview:** packaging also includes the Python interpreter and
+PyInstaller runtime support. The build retains Python's license, installed
+package notices and a package/version inventory under
+`Contents/Resources/Licenses`. See [Mac build instructions](MAC_APP.md). The
+September source inventory below is historical; the desktop build's inventory
+records its actual package versions.
+
+**Mac release review, 31 October 2026:** the v0.1.9 preview retains notices
+from the actual build environment under `Licenses/installed/`, plus the
+historical review under `Licenses/runtime/`. The environment inventory includes
+build/test tools and is not a claim that every listed package ships at runtime.
+The exact certifi 2026.10.23 source and certificate data accompany the app in
+`Licenses/Sources/`, with MPL-2.0 and hashes. PyInstaller's complete license and
+bundling exception are retained, as are Python's license and the Pillow,
+PyArrow, NumPy and Streamlit component notices. See the
+[PyInstaller exception](https://pyinstaller.org/en/stable/license.html).
+Camera Reading/OCR and its additional dependencies remain private and are
+excluded from both the public source and Mac download.
+
 The original application code and documentation in this checkout are licensed
 under the [MIT License](../LICENSE), copyright 2026 syazanne. The copyright name
 matches this project's Git author. Keep that license and copyright notice when
@@ -150,8 +169,8 @@ The old decoder is absent from the new requirements and vendored scanner.
 An executable, Docker image, bundled virtual environment or hosted browser
 build is a different distribution artifact. Before publishing one, inspect its
 actual contents and versions, preserve required notices and meet any applicable
-source-availability obligations. The current review does not certify an
-unbuilt binary package. No such package is produced by this project today.
+source-availability obligations. The Mac preview packaging review is recorded
+above; repeat it when the bundled dependencies change.
 
 ## Scope
 

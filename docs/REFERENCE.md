@@ -12,7 +12,7 @@ they are not additional pages or features users need to configure.
 | Database migration code | Imports older equipment records and upgrades field settings while preserving saved data and IDs. |
 | Legacy database tables | Earlier import sources remain in the local database. Active record backups do not export them. |
 | Old QR image files | Clearing a QR reference or deleting a record does not delete every old image. The database reference determines which QR is active. |
-| `QR-MedTech` backup identifier | Accepted so backups made before the app rename still restore. New backups use `QR Item Manager`. |
+| `QR-MedTech` backup identifier | Accepted so backups made before the app rename still restore. Itemori retains the `QR Item Manager` format identifier so existing backups and earlier app versions stay compatible. |
 | `Number` field migration | Converts older numeric fields into Text / Number without rewriting their values. |
 | `Admin Upload` page alias | Lets a session left on the older page name reach Admin Panel after a code update. |
 

@@ -53,7 +53,12 @@ def label_pdf(record_id: str, size_mm: int = 50) -> bytes:
 def label_print_html(record_id: str, png: bytes, size_mm: int = 50) -> str:
     validate_label(record_id, size_mm)
     image = base64.b64encode(png).decode("ascii")
-    return f"""<!doctype html><html><head><style>
+    # The Mac shell prints the same vector document as Download label PDF.
+    # Browser users retain the normal window.print() HTML path.
+    pdf = base64.b64encode(label_pdf(record_id, size_mm)).decode("ascii")
+    return f"""<!doctype html><html><head>
+        <meta name="itemori-label-pdf" content="{pdf}">
+        <style>
         * {{ box-sizing: border-box; }}
         body {{ margin: 0; font: 14px system-ui, sans-serif; }}
         .label {{ width: {size_mm}mm; height: {size_mm}mm; background: white; color: black;

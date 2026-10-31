@@ -1,6 +1,6 @@
 # Itemori
 
-**Offline item records, organised with QR labels.**
+**Itemori - Item Record and QR Label**
 
 Itemori (formerly QR Item Manager) helps you keep track of belongings, books,
 tools, supplies, and equipment. Give each item a permanent Record ID, save its
@@ -35,24 +35,43 @@ The QR contains only the Record ID, such as `REC-0001`. Editing an item's detail
 does not change its ID or require a new label. Use Itemori's scanner to open the
 record; a general phone camera may show the ID as text.
 
+## Screenshots
+
+Manage records with adjustable columns and automatic row numbers:
+
+![Manage records](docs/screenshots/manage.png)
+
+<details>
+<summary>Record details and field settings</summary>
+
+![Record details](docs/screenshots/record%20details.png)
+
+![Field settings](docs/screenshots/admin.png)
+
+</details>
+
 ## Get Itemori
 
 ### Mac app preview
+
+Download package name: **`Itemori-v0.1.9-preview-macOS-AppleSilicon.zip`**.
 
 The standalone **Itemori.app** preview targets **Apple Silicon Macs (M1 and
 later), macOS 14 or later**. It includes Python and the required components,
 opens in its own window, and works offline without Terminal setup.
 
-**The Mac preview has not yet been published as a GitHub Release.** There is no
-installer download on this repository yet. GitHub's **Code → Download ZIP**
-downloads source code, not the standalone application. You can run the published
-source version using the instructions below.
+[Download the Mac preview](https://github.com/syazanne/Itemori-QR_Item_Manager/releases/download/v0.1.9-preview/Itemori-v0.1.9-preview-macOS-AppleSilicon.zip)
+and unzip it, then drag **Itemori.app** into **Applications**.
+See the [release notes](https://github.com/syazanne/Itemori-QR_Item_Manager/releases/tag/v0.1.9-preview)
+and [Mac guide](docs/MAC_APP.md). This preview is locally signed and not Apple-notarized;
+the guide explains macOS's first-open prompt. GitHub's **Code → Download ZIP**
+downloads the source code.
 
 ### Run from source
 
-The published application source currently lives on
-[`project-1-item-manager2`](https://github.com/syazanne/Itemori-QR_Item_Manager/tree/project-1-item-manager2).
-The `main` branch is the repository overview.
+The `main` branch contains the Mac application and its source. The development
+branch `project-1-item-manager2` is retained. The separate AI prototype branches
+remain available for reference and are not included in the Mac release.
 
 You need Python **3.9 or later, except 3.9.7**, a terminal, and a browser.
 Internet access is needed to install dependencies; the core item manager works
@@ -62,7 +81,7 @@ paper labels. No account, API key, or separate database server is required.
 On macOS or Linux:
 
 ```bash
-git clone --branch project-1-item-manager2 https://github.com/syazanne/Itemori-QR_Item_Manager.git
+git clone https://github.com/syazanne/Itemori-QR_Item_Manager.git
 cd Itemori-QR_Item_Manager
 python3 -m venv .venv
 source .venv/bin/activate
@@ -96,7 +115,7 @@ unsaved changes are not included in backups.
 | Home | Scan a QR label or open the built-in guide. |
 | Library | Search and view item records. |
 | Manage | Add, edit, or delete records and create QR labels. |
-| Admin Panel | Configure fields and use Backup & Restore. |
+| Admin Panel | Configure fields, use Backup & Restore, or reset the app. |
 
 See the [step-by-step user guide](docs/USER_GUIDE.md) for field setup,
 scanning, label printing, and backups.
@@ -140,6 +159,7 @@ The main files are:
 | `qr_utils.py` / `label_utils.py` | QR images and printable labels. |
 | `scanner.py` / `scanner_frontend/` | Local camera scanning and bundled jsQR decoder. |
 | `backup_utils.py` | Backup validation, export, and restore. |
+| `reset_utils.py` | Confirmed reset of records, fields, QR files and in-app backups. |
 | `tests/` | Automated regression tests. |
 
 Run tests from the source checkout:
@@ -147,6 +167,10 @@ Run tests from the source checkout:
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 ```
+
+Camera Reading/OCR is a private debug experiment and is not included in the
+published source or Mac app. Users can start over from **Admin Panel → Reset App**
+after downloading a backup if needed.
 
 ## License
 

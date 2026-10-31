@@ -6,8 +6,9 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from field_utils import FIELD_TYPES, DATE_FORMATS, normalize_value
+from app_paths import writable_root
 
-DB_PATH = Path(__file__).resolve().parent / "data" / "machines.db"
+DB_PATH = writable_root(Path(__file__).resolve().parent) / "data" / "machines.db"
 
 
 def get_connection(db_path: Path) -> sqlite3.Connection:

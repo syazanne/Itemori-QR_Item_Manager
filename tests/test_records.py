@@ -205,6 +205,9 @@ class AppTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        (self.root / 'desktop_ui').mkdir()
+        (self.root / 'desktop_ui/records_table.js').write_text(
+            (ROOT / 'desktop_ui/records_table.js').read_text())
         (self.root / 'docs').mkdir()
         (self.root / 'docs' / 'USER_GUIDE.md').write_text(
             (ROOT / 'docs' / 'USER_GUIDE.md').read_text(encoding='utf-8'), encoding='utf-8')
@@ -228,9 +231,50 @@ class AppTests(unittest.TestCase):
     def assert_clean(self):
         self.assertFalse(self.app.exception, str(self.app.exception))
 
+    @unittest.skipUnless((ROOT / 'camera_reading.py').is_file() and (ROOT / 'camera_reading_frontend/index.html').is_file(), 'Private OCR experiment is not distributed')
+    def test_camera_reading_is_separate_and_preserves_records_and_fields(self):
+        before_records = db.get_records(self.path)
+        before_fields = db.get_fields(self.path)
+        self.assertFalse(any(button.key == 'nav_Camera Reading' for button in self.app.button))
+        with patch.dict('os.environ', {'ITEMORI_DEBUG': '1'}):
+            self.app.run()
+            self.app.button(key='nav_Camera Reading').click().run()
+            self.assert_clean()
+            self.assertIn('Camera Reading', [title.value for title in self.app.title])
+        self.assertEqual(db.get_records(self.path), before_records)
+        self.assertEqual(db.get_fields(self.path), before_fields)
+        self.app.button(key='nav_Admin Panel').click().run()
+        self.assert_clean()
+        self.assertEqual([tab.label for tab in self.app.tabs], ['Field Settings', 'Backup & Restore', 'Reset App'])
+
+    def test_reset_requires_confirmation_and_discards_stale_widgets(self):
+        rid = db.create_record(self.path)
+        db.save_record_value(self.path, rid, self.field_ids[0], 'Private record')
+        self.app.button(key='nav_Admin Panel').click().run()
+        self.app.text_input(key=f'field_name_{self.field_ids[0]}').set_value('Draft').run()
+        self.app.button(key='create_backup').click().run()
+        self.app.button(key='review_reset').click().run()
+        self.assertTrue(self.app.button(key='confirm_reset').disabled)
+        self.app.text_input(key='reset_confirmation').set_value('reset').run()
+        self.assertTrue(self.app.button(key='confirm_reset').disabled)
+        self.app.button(key='cancel_reset').click().run()
+        self.assertEqual(db.get_record(self.path, rid)['values'][self.field_ids[0]], 'Private record')
+        self.assertEqual(self.app.text_input(key=f'field_name_{self.field_ids[0]}').value, 'Draft')
+        self.app._run()  # AppTest retains stale dialog input nodes after dismissal.
+        self.app.button(key='review_reset').click().run()
+        self.app.text_input(key='reset_confirmation').set_value('RESET').run()
+        self.app.button(key='confirm_reset').click().run()
+        self.app._run()
+        self.assert_clean()
+        self.assertEqual(db.get_records(self.path), [])
+        self.assertEqual(self.app.text_input(key='field_name_1').value, '')
+        self.assertNotIn('prepared_backup', self.app.session_state.filtered_state)
+        self.assertNotIn('selected_record_id', self.app.session_state.filtered_state)
+        self.assertTrue(any('App reset.' in item.value for item in self.app.success))
+
     def test_admin_backup_and_confirmed_restore_clear_old_drafts(self):
         self.app.button(key='nav_Admin Panel').click().run()
-        self.assertEqual([tab.label for tab in self.app.tabs], ['Field Settings', 'Backup & Restore'])
+        self.assertEqual([tab.label for tab in self.app.tabs], ['Field Settings', 'Backup & Restore', 'Reset App'])
         self.app.button(key='create_backup').click().run()
         self.assert_clean()
         payload = self.app.session_state['prepared_backup']
@@ -281,8 +325,8 @@ class AppTests(unittest.TestCase):
         self.assertFalse(any(button.label == 'Del' for button in self.app.button))
         self.app.button(key='add_record').click().run()
         self.assertEqual(self.table_rows(), [
-            ['Record ID', 'Machine ID', 'beli', 'checkup', 'QR Code'],
-            ['REC-0001', '-', '-', '-', 'Not available'],
+            ['No.', 'Record ID', 'Machine ID', 'beli', 'checkup', 'QR Code'],
+            ['1', 'REC-0001', '-', '-', '-', 'Not available'],
         ])
         table_html = next(item.value for item in self.app.markdown if '<table class="manage-records">' in item.value)
         self.assertIn('href="?record_id=REC-0001" target="_self"', table_html)
@@ -322,7 +366,7 @@ class AppTests(unittest.TestCase):
         self.app.button(key='detail_done').click().run()
         self.assert_clean()
         self.assertEqual(self.app.title[0].value, 'Manage')
-        self.assertEqual(self.table_rows()[1], ['REC-0001', 'M-102', '2026', '-', 'Available'])
+        self.assertEqual(self.table_rows()[1], ['1', 'REC-0001', 'M-102', '2026', '-', 'Available'])
         for query in ['rec-0001', 'm-102', '2026']:
             self.app.text_input(key='manage_search').set_value(query).run()
             self.assertEqual(len(self.table_rows()) - 1, 1)
@@ -393,7 +437,7 @@ class AppTests(unittest.TestCase):
         self.assertEqual(db.get_record(self.path, record_id)['values'][first], '1994-02-01')
         self.assertTrue(any('UTC' in item.value and 'Last updated' in item.value for item in self.app.caption))
         self.app.button(key='nav_Library').click().run()
-        self.assertEqual(self.table_rows()[1][1], '02/01/1994')
+        self.assertEqual(self.table_rows()[1][2], '02/01/1994')
         for query in ['02/01/1994', '1994-02-01']:
             self.app.text_input(key='library_search').set_value(query).run()
             self.assertEqual(len(self.table_rows()), 2)
@@ -643,6 +687,28 @@ class AppTests(unittest.TestCase):
         self.app.text_input(key='manage_search').set_value('missing').run()
         self.assertFalse(any(button.label == 'Del' for button in self.app.button))
 
+    def test_row_numbers_follow_visible_list_after_delete_add_and_search(self):
+        self.manage()
+        for _ in range(3):
+            self.app.button(key='add_record').click().run()
+        self.assertEqual([row[:2] for row in self.table_rows()[1:]],
+                         [['1', 'REC-0001'], ['2', 'REC-0002'], ['3', 'REC-0003']])
+        self.app.button(key='delete_REC-0002').click().run()
+        self.app.button(key='confirm_delete').click().run()
+        self.app.run()
+        self.assertEqual([row[:2] for row in self.table_rows()[1:]],
+                         [['1', 'REC-0001'], ['2', 'REC-0003']])
+        self.app.button(key='add_record').click().run()
+        self.assertEqual([row[:2] for row in self.table_rows()[1:]],
+                         [['1', 'REC-0001'], ['2', 'REC-0003'], ['3', 'REC-0004']])
+        self.app.text_input(key='manage_search').set_value('REC-0003').run()
+        self.assertEqual(self.table_rows()[1][:2], ['1', 'REC-0003'])
+        self.assertTrue(any('1 of 3 records' in item.value for item in self.app.caption))
+        self.app.button(key='nav_Library').click().run()
+        self.assertEqual([row[:2] for row in self.table_rows()[1:]],
+                         [['1', 'REC-0001'], ['2', 'REC-0003'], ['3', 'REC-0004']])
+        self.assert_clean()
+
     def test_row_delete_popup_targets_only_clicked_record(self):
         self.manage()
         for _ in range(3):
@@ -743,7 +809,7 @@ class AppTests(unittest.TestCase):
         self.app._run()
         self.app.button(key='nav_Admin Panel').click().run()
         self.assertEqual(self.app.text_input(key=key).value, 'Draft')
-        self.assertFalse(self.app.warning)
+        self.assertTrue(all(item.value.startswith('This cannot be undone without a backup.') for item in self.app.warning))
         self.assert_clean()
 
     def test_remove_field_requires_confirmation_and_preserves_other_values(self):
@@ -754,7 +820,7 @@ class AppTests(unittest.TestCase):
         self.app.button(key='nav_Admin Panel').click().run()
         self.app.button(key=f'remove_field_{second}').click().run()
         self.assertEqual(len(self.app.get('dialog')), 1)
-        self.assertIn('every record', self.app.warning[0].value)
+        self.assertTrue(any('every record' in item.value for item in self.app.warning))
         self.assertEqual(db.get_record(self.path, record_id)['values'][second], 'Remove this')
         self.app.button(key='cancel_remove_field').click().run()
         self.app.run()
@@ -843,7 +909,7 @@ class AppTests(unittest.TestCase):
             self.assertIn('not active', self.app.warning[0].value)
             db.save_record_qr(self.path, record_id, filename)
             self.app.run()
-            self.assertEqual(self.app.title[0].value, 'Library')
+            self.assertEqual(self.app.title[0].value, 'Library Details')
             self.assertEqual(self.app.session_state['current_page'], 'Library Record')
             self.assertFalse(self.app.text_input)
             self.assertFalse(self.app.get('download_button'))

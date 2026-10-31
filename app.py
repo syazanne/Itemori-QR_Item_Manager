@@ -27,10 +27,13 @@ from database import (
 from field_utils import DATE_FORMATS, FIELD_TYPES, FIELD_TYPE_LABELS, display_value, widget_value
 from label_utils import LABEL_SIZES, label_pdf, label_print_html
 from qr_utils import generate_qr_code
+from app_paths import writable_root, debug_tools_enabled
+from reset_utils import reset_app_data
 
 APP_DIR = Path(__file__).resolve().parent
-QRCODES_DIR = APP_DIR / "qr_codes"
-st.set_page_config(page_title="QR Item Manager", page_icon=":material/qr_code_2:", layout="wide")
+DATA_DIR = writable_root(APP_DIR)
+QRCODES_DIR = DATA_DIR / "qr_codes"
+st.set_page_config(page_title="Itemori", page_icon=":material/qr_code_2:", layout="wide")
 initialize_db(DB_PATH)
 
 
@@ -45,6 +48,7 @@ def go_to(page: str) -> None:
     st.session_state.pop("saved_feedback", None)
     st.session_state.pop("pending_print", None)
     st.session_state.pop("pending_restore", None)
+    st.session_state.pop("pending_reset", None)
 
 
 def detail_input_key(record_id: str, field: dict) -> str:
@@ -238,7 +242,7 @@ def render_home() -> None:
     """)
     with st.container(horizontal_alignment="center", gap="medium"):
         with st.container(key="home_intro", width=880):
-            st.title("QR Item Manager")
+            st.title("Itemori")
             st.caption("Organise your items with up to six custom fields and QR labels.")
         with st.container(key="home_scan_stage", width=420, horizontal_alignment="center", gap="small"):
             if not st.session_state.get("scanner_active"):
@@ -327,11 +331,58 @@ def confirm_field_removal(field_id: int) -> None:
 
 def render_admin() -> None:
     st.title("Admin Panel")
-    settings, backups = st.tabs(["Field Settings", "Backup & Restore"])
+    if st.session_state.get("reset_success"):
+        st.success("App reset. Add field names to get started again.")
+    for path in st.session_state.get("reset_cleanup_remaining", []):
+        st.warning(f"The app was reset, but an old data folder could not be deleted. Remove it manually: {path}")
+    settings, backups, reset = st.tabs(["Field Settings", "Backup & Restore", "Reset App"])
     with settings:
         render_field_settings()
     with backups:
         render_backups()
+    with reset:
+        render_reset()
+
+
+def cancel_reset() -> None:
+    st.session_state.pop("pending_reset", None)
+    st.session_state.pop("reset_confirmation", None)
+
+
+def request_reset() -> None:
+    cancel_reset()
+    st.session_state["pending_reset"] = True
+
+
+def render_reset() -> None:
+    st.subheader("Reset App")
+    st.write("Start again with an empty list and one blank default field.")
+    st.write("This removes all records, saved values, field settings, generated QR images, "
+             "and automatic backups stored inside the app. Unsaved edits and table widths are cleared too.")
+    st.warning("This cannot be undone without a backup. Use Backup & Restore to download a copy first if you need one.")
+    st.caption("Files you downloaded elsewhere are kept. Record IDs restart at REC-0001, "
+               "so replace old printed QR labels before using the new collection.")
+    st.button("Reset app…", key="review_reset", on_click=request_reset)
+
+
+@st.dialog("Reset all app data?", width="small", on_dismiss=cancel_reset)
+def confirm_reset() -> None:
+    st.write(f"Remove **{len(get_records(DB_PATH))} records** and "
+             f"**{len(get_fields(DB_PATH, saved_only=True))} saved fields**, plus QR images and in-app backups?")
+    st.warning("All unsaved edits will also be discarded. No automatic recovery copy will be kept.")
+    text = st.text_input("Type RESET to confirm", key="reset_confirmation")
+    cancel, reset = st.columns(2)
+    if cancel.button("Cancel", key="cancel_reset"):
+        cancel_reset()
+        st.rerun()
+    if reset.button("Reset everything", key="confirm_reset", type="primary", disabled=text != "RESET") and text == "RESET":
+        try:
+            remaining = reset_app_data(DB_PATH, QRCODES_DIR, DATA_DIR / "data/backups")
+        except (ValueError, OSError, sqlite3.Error) as exc:
+            st.error(f"Reset could not be completed: {exc}")
+        else:
+            st.session_state["_reset_completed"] = [str(path) for path in remaining]
+            st.rerun()
 
 
 def render_field_settings() -> None:
@@ -399,7 +450,7 @@ def render_backups() -> None:
                 st.error(f"Backup could not be created: {exc}")
             else:
                 st.session_state["prepared_backup"] = payload
-                st.session_state["prepared_backup_name"] = f"qr-item-manager-backup-{datetime.now():%Y%m%d-%H%M%S}.zip"
+                st.session_state["prepared_backup_name"] = f"itemori-backup-{datetime.now():%Y%m%d-%H%M%S}.zip"
         if payload := st.session_state.get("prepared_backup"):
             summary = read_backup(payload)
             st.caption(f"Backup created: {summary['exported_at']} · {len(summary['records'])} records · {len(summary['fields'])} fields")
@@ -424,7 +475,7 @@ def render_backups() -> None:
                     st.warning("This backup has missing QR images. Those records will have QR status Not available.")
                 st.button("Review restore", key="review_restore", on_click=request_restore, args=(payload,))
         st.caption("A backup of the current saved data is kept automatically before every restore.")
-        safety_dir = APP_DIR / "data" / "backups"
+        safety_dir = DATA_DIR / "data" / "backups"
         copies = sorted(safety_dir.glob("before-restore-*.zip"), reverse=True)
         if copies:
             selected = st.selectbox("Backup before restore", copies, format_func=lambda path: path.name, key="safety_backup_selection")
@@ -444,7 +495,7 @@ def confirm_restore(payload: bytes) -> None:
         st.rerun()
     if restore.button("Restore and replace", key="confirm_restore", type="primary"):
         try:
-            restore_backup(payload, DB_PATH, QRCODES_DIR, APP_DIR / "data" / "backups")
+            restore_backup(payload, DB_PATH, QRCODES_DIR, DATA_DIR / "data" / "backups")
         except (BackupError, OSError, sqlite3.Error) as exc:
             st.error(f"Restore could not be completed. Current records were kept. {exc}")
         else:
@@ -527,6 +578,14 @@ def render_records(*, view_only: bool = False) -> None:
                 flex: 0 0 44px;
                 min-width: 44px;
             }
+            [data-testid="stHorizontalBlock"]:has(.st-key-manage_toolbar) {
+                flex-wrap: nowrap !important;
+            }
+            [data-testid="stHorizontalBlock"]:has(.st-key-manage_toolbar) >
+            [data-testid="stColumn"]:not(:has(.st-key-manage_toolbar)) {
+                flex: 1 1 0%;
+                min-width: 0 !important;
+            }
             table.manage-records {
                 width: 100%;
                 table-layout: fixed;
@@ -534,24 +593,25 @@ def render_records(*, view_only: bool = False) -> None:
                 border-spacing: 0;
                 border: 1px solid #d9dfe8;
                 border-radius: 8px;
-                overflow: hidden;
                 margin: 0;
                 font-size: 16px;
             }
             table.manage-records th, table.manage-records td {
                 box-sizing: border-box;
                 height: 35px;
-                padding: 0 8px;
-                line-height: 34px;
+                padding: 7px 8px;
+                line-height: 20px;
                 text-align: left;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                vertical-align: top;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
                 border: 0;
                 border-right: 1px solid #d9dfe8;
                 border-bottom: 1px solid #d9dfe8;
             }
             table.manage-records th {
+                position: relative;
+                padding-right: 14px;
                 background: var(--secondary-background-color, #f7f8fa);
                 font-weight: 400;
             }
@@ -561,6 +621,19 @@ def render_records(*, view_only: bool = False) -> None:
             table.manage-records tbody tr:last-child td { border-bottom: 0; }
             table.manage-records a { color: #0068c9; text-decoration: none; }
             table.manage-records a:hover { text-decoration: underline; }
+            table.manage-records th:first-child, table.manage-records td:first-child {
+                text-align: center;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .manage-table-scroll { overflow-x: auto; padding-bottom: 3px; }
+            .manage-column-resizer {
+                position: absolute; right: -1px; top: 0; bottom: 0; width: 9px;
+                cursor: col-resize; touch-action: none; z-index: 1;
+            }
+            .manage-column-resizer:hover, .manage-column-resizer:focus-visible {
+                background: #0068c933; outline: 2px solid #0068c9; outline-offset: -2px;
+            }
         </style>
         """,
     )
@@ -569,16 +642,19 @@ def render_records(*, view_only: bool = False) -> None:
         on_change=None if view_only else clear_delete_confirmation,
     ).strip().casefold()
     fields = get_fields(DB_PATH, saved_only=True)
-    records = [record for record in get_records(DB_PATH) if not query or any(
+    all_records = get_records(DB_PATH)
+    records = [record for record in all_records if not query or any(
         query in value.casefold() for value in [record["record_id"], *record["values"].values(),
             *[display_value(field, record["values"].get(field["id"], "")) for field in fields]]
     )]
+    count = f"{len(records)} of {len(all_records)} records" if query else f"{len(records)} record{'s' if len(records) != 1 else ''}"
+    st.caption(f"{count}. Drag the right edge of a column heading to resize it. Long text wraps onto the next line.")
     if view_only:
         table = st.container()
     else:
         toolbar, table = st.columns([0.65, 9.35], gap="small")
         with toolbar, st.container(key="manage_toolbar", gap=None):
-            # Match each button slot to the 35px header/record row beside it.
+            # The table enhancer keeps these slots aligned with wrapped rows.
             with st.container(height=35, border=False, key="manage_add_slot"):
                 st.button("Add", key="add_record", on_click=add_empty_record, width="content")
             for record in records:
@@ -588,10 +664,10 @@ def render_records(*, view_only: bool = False) -> None:
                         on_click=request_record_delete, args=(record["record_id"],),
                     )
     with table:
-        columns = ["Record ID", *[field["field_name"] for field in fields], "QR Code"]
+        columns = ["No.", "Record ID", *[field["field_name"] for field in fields], "QR Code"]
         header = "".join(f"<th>{html.escape(column)}</th>" for column in columns)
         rows = []
-        for record in records:
+        for row_number, record in enumerate(records, start=1):
             record_id = record["record_id"]
             parameter = "view_record" if view_only else "record_id"
             href = f"?{parameter}={quote(record_id, safe='')}"
@@ -601,12 +677,15 @@ def render_records(*, view_only: bool = False) -> None:
             cells = "".join(
                 f'<td title="{html.escape(value, quote=True)}">{html.escape(value)}</td>' for value in values
             )
-            rows.append(f"<tr>{id_cell}{cells}</tr>")
+            rows.append(f'<tr data-record-id="{html.escape(record_id, quote=True)}"><td>{row_number}</td>{id_cell}{cells}</tr>')
+        column_ids = ["row_number", "record_id", *[f"field_{field['id']}" for field in fields], "qr_status"]
+        colgroup = "<colgroup>" + "".join(f'<col data-column-id="{key}">' for key in column_ids) + "</colgroup>"
         st.markdown(
-            f'<table class="manage-records"><thead><tr>{header}</tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody></table>',
+            f'<div class="manage-table-scroll"><table class="manage-records">{colgroup}<thead><tr>{header}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>',
             unsafe_allow_html=True,
         )
+        components.html(f"<script>{(APP_DIR / 'desktop_ui/records_table.js').read_text()}</script>", height=0)
         if not records:
             st.caption("No records match your search." if query else (
                 "No records yet." if view_only else "Click Add to create your first record."
@@ -627,7 +706,9 @@ def scan_another_record() -> None:
 
 
 def render_library_record(record_id: str) -> None:
-    st.title("Library")
+    with st.container(key="library_heading", gap="small"):
+        st.button("← Back to Library", key="library_back", on_click=request_navigation, args=("Library",))
+        st.title("Library Details")
     record = get_record(DB_PATH, record_id)
     if record is None:
         st.warning("This record no longer exists.")
@@ -664,7 +745,6 @@ def render_library_record(record_id: str) -> None:
             else:
                 st.caption("Not available")
     with st.container(horizontal=True, gap="small"):
-        st.button("Back to Library", key="library_back", on_click=request_navigation, args=("Library",))
         st.button("Scan another QR", key="library_scan_next", on_click=scan_another_record)
         if record is not None:
             st.button("Edit Record", key="library_manage", on_click=edit_library_record, args=(record_id,))
@@ -719,7 +799,11 @@ def print_label_dialog(record_id: str) -> None:
         return
     size = st.selectbox("Label size", LABEL_SIZES, index=1,
                         format_func=lambda size: f"{size} × {size} mm", key="label_size")
-    st.caption("Print at 100% / Actual size with browser headers and footers off. Match your printer paper size to the label.")
+    st.caption("Label size includes the QR code, white space and Record ID: 40 mm = 4 cm, "
+               "50 mm = 5 cm, 60 mm = 6 cm. In the print dialog, choose the paper loaded "
+               "in your printer (for example, A4). Use 100% / Actual size and turn off "
+               "Scale to Fit to keep the selected label size. The Mac app prints one label "
+               "at the upper left. In a browser, turn off headers and footers.")
     png = (QRCODES_DIR / record["qr_filename"]).read_bytes()
     components.html(label_print_html(record_id, png, size), height=int(size * 96 / 25.4) + 65)
     st.download_button("Download label PDF", data=label_pdf(record_id, size),
@@ -745,6 +829,7 @@ def render_detail(record_id: str) -> None:
         </style>""",
     )
     with st.container(key="detail_heading", gap="small"):
+        st.button("← Back to Manage", key="detail_back", on_click=request_navigation, args=("Manage",))
         st.title("Record Details")
         st.caption(f"Record ID: {record_id}")
     record = get_record(DB_PATH, record_id)
@@ -826,6 +911,18 @@ def render_detail(record_id: str) -> None:
 
 
 def main() -> None:
+    if "_reset_completed" in st.session_state:
+        remaining = st.session_state["_reset_completed"]
+        st.session_state.clear()
+        st.query_params.clear()
+        st.session_state.update(current_page="Admin Panel", reset_success=True,
+                                reset_cleanup_remaining=remaining)
+        components.html("""<script>
+            const host = window.parent;
+            host.itemoriDisposeTable?.();
+            host.itemoriColumnWidths = {};
+            try { host.localStorage.removeItem('itemori.column-widths.v1'); } catch (_) {}
+        </script>""", height=0)
     st.html(
         """
         <style>
@@ -881,7 +978,10 @@ def main() -> None:
         current_page = st.session_state["current_page"]
         active_menu = {"Detail Page": "Manage", "Library Record": "Library", "How to use": "Home"}.get(current_page, current_page)
         with st.container(key="sidebar_menu", gap=None):
-            for page in ["Home", "Library", "Manage", "Admin Panel"]:
+            pages = ["Home", "Library", "Manage", "Admin Panel"]
+            if debug_tools_enabled():
+                pages.append("Camera Reading")
+            for page in pages:
                 st.button(
                     page, key=f"nav_{page}", type="primary" if page == active_menu else "secondary",
                     width="stretch", on_click=request_navigation, args=(page,),
@@ -895,6 +995,9 @@ def main() -> None:
         render_library_record(st.session_state["selected_record_id"])
     elif page == "Admin Panel":
         render_admin()
+    elif page == "Camera Reading" and debug_tools_enabled():
+        from camera_reading import render_camera_reading
+        render_camera_reading()
     elif page == "How to use":
         render_user_guide()
     elif page == "Detail Page" and st.session_state.get("selected_record_id"):
@@ -912,6 +1015,8 @@ def main() -> None:
         print_label_dialog(record_id)
     elif payload := st.session_state.get("pending_restore"):
         confirm_restore(payload)
+    elif st.session_state.get("pending_reset"):
+        confirm_reset()
 
 
 if __name__ == "__main__":

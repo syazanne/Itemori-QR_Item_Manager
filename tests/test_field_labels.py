@@ -1,4 +1,6 @@
 import unittest
+import base64
+import re
 from datetime import date
 from io import BytesIO
 from unittest.mock import patch
@@ -24,6 +26,13 @@ class FieldFormatTests(unittest.TestCase):
 
 
 class LabelTests(unittest.TestCase):
+    def test_native_print_payload_matches_downloaded_label_for_each_size(self):
+        for size in LABEL_SIZES:
+            with self.subTest(size=size):
+                preview = label_print_html('REC-0008', b'png', size)
+                encoded = re.search(r'<meta name="itemori-label-pdf" content="([^"]+)">', preview).group(1)
+                self.assertEqual(base64.b64decode(encoded), label_pdf('REC-0008', size))
+
     def test_pdf_sizes_readable_id_and_indirect_content_stream(self):
         for size in LABEL_SIZES:
             with self.subTest(size=size):

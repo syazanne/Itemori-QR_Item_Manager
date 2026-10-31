@@ -5,6 +5,7 @@ import hashlib
 from pathlib import Path
 
 import streamlit.components.v1 as components
+from app_paths import writable_root
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -14,7 +15,7 @@ def qrcode_scanner(key: str = "record_qr_scanner") -> str | None:
     if not (frontend / "vendor" / "jsQR.js").is_file():
         raise ImportError("The bundled QR decoder is missing. Restore scanner_frontend/vendor/jsQR.js.")
     # Separate from the old generated bundle so no html5-qrcode assets are served.
-    bundle = APP_DIR / "data" / "scanner_component_jsqr"
+    bundle = writable_root(APP_DIR) / "data" / "scanner_component_jsqr"
     bundle.mkdir(parents=True, exist_ok=True)
     assets = {source.relative_to(frontend).as_posix(): source.read_bytes()
               for source in sorted(frontend.rglob("*")) if source.is_file()}

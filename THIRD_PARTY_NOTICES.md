@@ -1,6 +1,11 @@
 # Third-party software
 
-QR Item Manager's original code and documentation in this branch are covered by
+The standalone Mac preview additionally includes Python and PyInstaller runtime
+support. Its `Contents/Resources/Licenses` directory retains the Python license,
+package notices, and `build-inventory.json` identifying the build environment.
+The Mac app menu provides access through **Third-party licenses**.
+
+Itemori's original code and documentation in this branch are covered by
 the root [MIT License](LICENSE), copyright 2026 syazanne. Third-party components
 retain their own licenses. The root MIT license does not override them.
 
@@ -16,6 +21,9 @@ The scanner serves the decoder, its license and its attribution together from
 the local component. No CDN, npm install, or separate scanner Python package is
 needed. Retain these files when sharing the app. For an upgrade, repeat the
 release review recorded in [LICENSING.md](docs/LICENSING.md).
+
+Camera Reading/OCR is a private experiment excluded from this public source
+and the Mac release. Its dependencies are not distributed with Itemori.
 
 ## Python packages installed separately
 
@@ -51,9 +59,14 @@ The copies here document the reviewed versions, not every future installation.
   in the inspected Pillow wheel is 2.13.3.
 - **PyArrow 21.0.0:** its Apache `LICENSE.txt` and `NOTICE.txt` are both retained,
   including attributions for the Apache Software Foundation and bundled code.
-- **certifi 2026.7.22:** the MPL-2.0 license is retained. The unmodified upstream
-  distribution, including source, is available from
-  [its versioned PyPI page](https://pypi.org/project/certifi/2026.7.22/#files).
+- **certifi:** the September source-review snapshot used 2026.7.22. The Mac
+  preview uses **2026.10.23** and includes its unmodified source, certificate
+  data, full MPL-2.0 license and hashes under
+  `Contents/Resources/Licenses/Sources/certifi-2026.10.23/`.
+- **PyInstaller 6.16.0:** its full license and bundling exception are retained
+  under `Contents/Resources/Licenses/installed/pyinstaller/`. The exception
+  permits distributing the generated application under its own license; it
+  does not replace the licenses of bundled dependencies.
 - **NumPy 2.0.2:** its full license includes native-library terms and the GCC
   Runtime Library Exception. These notices have not been replaced by the
   project's MIT license.

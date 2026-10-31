@@ -5,6 +5,19 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
+.venv-desktop/
+build/
+dist/
+app/
+
+# Private, opt-in OCR experiment; not part of the public Mac release/source
+/camera_reading.py
+/camera_reading_frontend/
+/docs/CAMERA_READING.md
+/tests/browser/ocr_reading.py
+# Superseded local screenshots
+/docs/screenshots/admin 2.png
+/docs/screenshots/Library-front.png
 
 # Local application data
 _reset_backup/

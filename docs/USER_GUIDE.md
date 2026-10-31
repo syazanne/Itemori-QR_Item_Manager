@@ -1,4 +1,4 @@
-# How to use QR Item Manager
+# How to use Itemori
 
 Start with one item and follow the steps below. Your changes are stored on the
 computer running the app.
@@ -36,9 +36,26 @@ saving the field settings.
 Open **Manage** and press **Add**. A new row appears with an automatic Record ID,
 such as `REC-0001`. Click that ID to open **Record Details**.
 
+The **No.** column counts the displayed rows from 1. It updates automatically
+after adding or deleting records and starts at 1 for search results. Record IDs
+remain unchanged. The count above the table shows the total, or the number of
+matching records out of the total when searching.
+
+In Manage and Library, drag the right edge of a column heading to make the
+column wider or narrower. You can also focus that edge with Tab and use the
+Left/Right arrow keys. Long values wrap onto multiple lines; scroll sideways
+if the columns are wider than the window.
+
 IDs may have gaps if earlier records were deleted. Keep the assigned ID: it is
 the permanent reference used by that item's QR label. The four-digit format is
 a minimum width, not a limit: `REC-9999` is followed by `REC-10000`.
+
+To start over, open **Admin Panel → Reset App**. This clears records, field
+settings, generated QR images, in-app automatic backups and unsaved edits,
+leaving one blank default field. Download a backup first if needed. Choose
+**Reset app…**, type **RESET**, then choose **Reset everything**. Cancel keeps
+your data. Downloaded files outside the app are kept. This full reset restarts
+IDs at `REC-0001`; replace old printed QR labels before using the new collection.
 
 ## 3. Enter and save details
 
@@ -47,7 +64,7 @@ a calendar. **Saved ✓** confirms the save; **Unsaved** means that field still 
 changes to save. Saving one field does not save the other fields.
 
 **Last updated** shows the last saved record change in UTC. If you try to leave
-using **DONE** or the sidebar with unsaved edits, choose **Stay** to keep editing
+using **← Back to Manage**, **DONE** or the sidebar with unsaved edits, choose **Stay** to keep editing
 or **Leave** to discard those edits.
 
 If a date field shows **Previous saved text**, its old value could not be read
