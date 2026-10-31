@@ -1,0 +1,44 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv-desktop/
+build/
+dist/
+app/
+
+# Private, opt-in OCR experiment; not part of the public Mac release/source
+/camera_reading.py
+/camera_reading_frontend/
+/docs/CAMERA_READING.md
+/tests/browser/ocr_reading.py
+# Superseded local screenshots
+/docs/screenshots/admin 2.png
+/docs/screenshots/Library-front.png
+
+# Local application data
+_reset_backup/
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/manual_text/
+data/scanner_component/
+data/scanner_component_jsqr/
+data/backups/
+manuals/*
+!manuals/.gitkeep
+qr_codes/*
+!qr_codes/.gitkeep
+
+# Local/editor files
+.DS_Store
+.streamlit/secrets.toml
+*.log
+
+# Private/local spreadsheets and temporary office files
+*.xlsx
+~$*.xlsx

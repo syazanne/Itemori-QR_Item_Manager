@@ -1,0 +1,23 @@
+// The runner prepends the shared helpers and uses disposable records only.
+localStorage.setItem('itemori.column-widths.v1', '{"record_id":300}');
+window.itemoriColumnWidths = {record_id: 300};
+await click('nav_Admin Panel');
+await setInput('field_name_1', 'Draft');
+const resetTab = await waitFor(() => [...document.querySelectorAll('[role="tab"]')].find(t => t.innerText === 'Reset App'), 'Reset App tab');
+resetTab.click();
+await click('review_reset');
+await waitFor(() => keyed('confirm_reset')?.querySelector('button:disabled'), 'reset requires confirmation');
+await click('cancel_reset');
+await waitFor(() => !document.querySelector('[role="dialog"]'), 'cancel closes reset');
+if (keyed('field_name_1')?.querySelector('input')?.value !== 'Draft') throw new Error('Cancel discarded an unsaved field edit');
+await click('review_reset');
+await setInput('reset_confirmation', 'RESET');
+await click('confirm_reset');
+await waitFor(() => document.body.innerText.includes('App reset.'), 'reset success');
+await waitFor(() => localStorage.getItem('itemori.column-widths.v1') === null, 'cleared table preferences');
+await click('nav_Manage');
+await waitFor(() => document.querySelector('table.manage-records tbody')?.rows.length === 0, 'empty collection');
+await click('nav_Admin Panel');
+await waitFor(() => keyed('field_name_1')?.querySelector('input')?.value === '', 'blank default field');
+if (keyed('nav_Camera Reading')) throw new Error('Debug tools appeared after reset');
+return JSON.stringify({ok: true, reset: true});
