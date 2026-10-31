@@ -70,6 +70,7 @@ def collect_licenses(destination):
     if not {"certifi/core.py", "certifi/cacert.pem"} <= source_files.keys():
         raise RuntimeError("The certifi source and certificate data must accompany the release.")
     shutil.copyfile(certifi.locate_file(f"certifi-{certifi.version}.dist-info/licenses/LICENSE"), source_root / "LICENSE")
+    shutil.copyfile(ROOT / "docs/licenses/MPL-2.0.txt", source_root / "MPL-2.0.txt")
     (source_root / "SHA256.json").write_text(json.dumps(source_files, indent=2) + "\n")
     (destination / "README.txt").write_text(
         "Itemori original code: MIT; third-party components retain their own terms.\n"
