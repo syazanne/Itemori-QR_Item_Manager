@@ -8,6 +8,20 @@ details, generate a QR label, and scan the label to open its record.
 
 [User guide](docs/USER_GUIDE.md) · [Source code](https://github.com/syazanne/Itemori-QR_Item_Manager/tree/project-1-item-manager2) · [MIT license](LICENSE)
 
+## How it works
+
+```mermaid
+flowchart LR
+    A[Configure fields] --> B[Add item]
+    B --> C[Save details]
+    C --> D[Generate QR]
+    D --> E[Download or print label]
+    E --> F[Scan QR on Home]
+    F --> G[View item in Library]
+    G --> H[Edit Record]
+    H --> C
+```
+
 ## What you can do
 
 - Choose up to **six custom fields**, with Text / Number or Date inputs.
