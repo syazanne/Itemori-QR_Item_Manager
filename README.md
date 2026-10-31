@@ -6,7 +6,11 @@ Itemori (formerly QR Item Manager) helps you keep track of belongings, books,
 tools, supplies, and equipment. Give each item a permanent Record ID, save its
 details, generate a QR label, and scan the label to open its record.
 
-[User guide](docs/USER_GUIDE.md) · [Source code](https://github.com/syazanne/Itemori-QR_Item_Manager/tree/project-1-item-manager2) · [MIT license](LICENSE)
+[Download for Mac](https://github.com/syazanne/Itemori-QR_Item_Manager/releases/tag/v0.1.9-preview) · [User guide](docs/USER_GUIDE.md) · [Source code](https://github.com/syazanne/Itemori-QR_Item_Manager/tree/project-1-item-manager2) · [MIT license](LICENSE)
+
+The Home page brings together QR scanning and a quick guide to your first item.
+
+![Itemori Home with Scan QR and the getting-started guide](docs/screenshots/home.png)
 
 ## How it works
 
@@ -34,21 +38,6 @@ flowchart LR
 The QR contains only the Record ID, such as `REC-0001`. Editing an item's details
 does not change its ID or require a new label. Use Itemori's scanner to open the
 record; a general phone camera may show the ID as text.
-
-## Screenshots
-
-Manage records with adjustable columns and automatic row numbers:
-
-![Manage records](docs/screenshots/manage.png)
-
-<details>
-<summary>Record details and field settings</summary>
-
-![Record details](docs/screenshots/record%20details.png)
-
-![Field settings](docs/screenshots/admin.png)
-
-</details>
 
 ## Get Itemori
 
@@ -119,6 +108,42 @@ unsaved changes are not included in backups.
 
 See the [step-by-step user guide](docs/USER_GUIDE.md) for field setup,
 scanning, label printing, and backups.
+
+### Configure your fields
+
+In **Admin Panel → Field Settings**, choose the names and types of the fields
+you want to record. Save each field before adding items.
+
+![Admin Panel showing six custom fields and their input types](docs/screenshots/admin.png)
+
+### Manage your collection
+
+Use **Manage** to add, search, and delete records. Drag a column's right edge
+to resize it; long values wrap, and row numbers adjust as the displayed list changes.
+Select a Record ID to edit that item.
+
+![Manage showing adjustable columns, wrapped values and automatic row numbers](docs/screenshots/manage.png)
+
+### Edit details and create QR labels
+
+**Record Details** lets you save each field and generate, download, or print the
+item's QR label. Use **Back to Manage** or **DONE** to return to the list.
+
+![Record Details showing editable fields, the QR code and label actions](docs/screenshots/record%20details.png)
+
+### Browse the library
+
+Use **Library** to search and browse saved records. Select a Record ID to open
+its details.
+
+![Library showing the searchable record list](docs/screenshots/library.png)
+
+### View an item's details
+
+**Library Details** shows the saved values and QR code together. From here,
+return to Library, scan another QR, or choose **Edit Record** to make changes.
+
+![Library Details showing saved values, the QR code and navigation buttons](docs/screenshots/library%20details.png)
 
 ## Data and backups
 
